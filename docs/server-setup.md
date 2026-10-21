@@ -51,3 +51,16 @@
 - `01-clean-install` — сразу после установки ОС и обновления.
 - `02-keys-Configured` — после настройки ключевой аутентификации.
 - `03-ssh-hardened` — после усиления безопасности SSH.
+
+## 8. Веб-сервер
+
+- **Устанавливаемый пакет:** `nginx`
+- **Путь к конфигурации ресурса:** `/etc/nginx/sites-available/devops-site` (симлинк в `sites-enabled/devops-site`)
+- **Каталог ресурса:** `/var/www/devops-site`
+  - Владелец: `devops:devops`
+  - Права: каталоги `755`, файлы `644`
+- **Сертификат:** `/etc/ssl/certs/devops.crt` (права `644`)
+- **Ключ:** `/etc/ssl/private/devops.key` (права `600`, владелец `root`)
+- **Команда формирования сертификата:** 
+  `sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/devops.key -out /etc/ssl/certs/devops.crt -subj "/CN=devops.local" -addext "subjectAltName=DNS:devops.local"`
+- **Срок действия:** 365 дней.

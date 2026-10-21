@@ -34,6 +34,21 @@ check "Default deny incoming" "deny" "$(sudo ufw status verbose | grep 'Default:
 
 echo "[3] Учётные записи"
 awk -F: ' $3>=1000 && $3<65534 {printf " %s (uid=%s)\n",$1,$3}' /etc/passwd
+echo "[4] Веб-сервер"
+# nginx -t
+if sudo nginx -t >/dev/null 2>&1; then actual_nginx="ok"; else actual_nginx="fail"; fi
+check "Конфигурация Nginx синтаксически корректна" "ok" "$actual_nginx"
+
+# Сертификат (проверка на 30 дней)
+if sudo openssl x509 -checkend 2592000 -noout -in /etc/ssl/certs/devops.crt >/dev/null 2>&1; then actual_cert="ok"; else actual_cert="expiring"; fi
+check "Сертификат действителен более 30 дней" "ok" "$actual_cert"
+
+# Права ключа
+check "Права ключа 600" "600" "$(sudo stat -c '%a' /etc/ssl/private/devops.key)"
+
+# Отсутствие файлов 777 в каталоге
+if [[ -z "$(find /var/www/devops-site -perm -o+w 2>/dev/null)" ]]; then actual_perm="clean"; else actual_perm="dirty"; fi
+check "Нет файлов доступных на запись всем" "clean" "$actual_perm"
 echo "Пройдено: $PASS, не пройдено: $FAIL"
 
 [[ $FAIL -eq 0 ]] && exit 0 || exit 1
