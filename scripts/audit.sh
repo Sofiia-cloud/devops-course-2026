@@ -34,6 +34,29 @@ check "Default deny incoming" "deny" "$(sudo ufw status verbose | grep 'Default:
 
 echo "[3] Учётные записи"
 awk -F: ' $3>=1000 && $3<65534 {printf " %s (uid=%s)\n",$1,$3}' /etc/passwd
+echo "[5] Контейнеризация"
+check "Служба docker активна" "active" "$(systemctl is-active docker)"
+
+if [[ -n "$(docker ps -q -f name=app-db-1)" ]]; then
+    check "Контейнер СУБД healthy" "healthy" "$(docker inspect -f '{{.State.Health.Status}}' app-db-1)"
+else
+    check "Контейнер СУБД healthy" "healthy" "not_running"
+fi
+
+# Проверка портов (5000 и 5432 не должны слушаться на 0.0.0.0)
+if [[ -z "$(ss -tln | grep -E ':(5000|5432)' | grep -v '127.0.0.1')" ]]; then
+    actual_ports="safe"
+else
+    actual_ports="exposed"
+fi
+check "Порты 5000 и 5432 только на localhost" "safe" "$actual_ports"
+
+# Права .env
+if [[ -f "$HOME/app/.env" ]]; then
+    check "Права .env равны 600" "600" "$(stat -c '%a' "$HOME/app/.env")"
+else
+    check "Права .env равны 600" "600" "not_found"
+fi
 echo "Пройдено: $PASS, не пройдено: $FAIL"
 
 [[ $FAIL -eq 0 ]] && exit 0 || exit 1
