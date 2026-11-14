@@ -61,11 +61,12 @@
   - Права: каталоги `755`, файлы `644`
 - **Сертификат:** `/etc/ssl/certs/devops.crt` (права `644`)
 - **Ключ:** `/etc/ssl/private/devops.key` (права `600`, владелец `root`)
-- **Команда формирования сертификата:** 
+- **Команда формирования сертификата:**
   `sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/devops.key -out /etc/ssl/certs/devops.crt -subj "/CN=devops.local" -addext "subjectAltName=DNS:devops.local"`
 - **Срок действия:** 365 дней.
 
 ## 9. Контейнеризация
+
 - **Способ установки Docker Engine:** официальный скрипт `get.docker.com`, версия Docker Engine 27.x.
 - **Участники группы docker:** пользователь `devops`.
 - **Расположение проекта на сервере:** `/home/devops/app`.
@@ -73,3 +74,25 @@
 - **Публикуемые порты и адреса:** только `127.0.0.1:5000` (для Nginx).
 - **Именованные тома:** `app_db_data` (для базы данных PostgreSQL).
 - **Конфигурация обратного прокси-сервера:** Nginx проксирует запросы с `https://devops.local/app/` на `http://127.0.0.1:5000/`.
+
+## 10. Ansible
+
+- **Расположение проекта:** `~/devops-course-2026/ansible`
+- **Управляющий узел:** WSL на ноутбуке (Ansible 2.16+).
+- **Управляемый узел:** VM `devops-vm` (192.168.56.101).
+- **Inventory:**
+  - `bootstrap.ini` — первичный запуск от `student` по паролю.
+  - `prod.ini` — последующие запуски от `devops` по ключу.
+- **Роли:**
+  - `base` — ОС, пакеты, Docker Engine.
+  - `ssh` — пользователь `devops`, SSH-ключи, hardening, UFW.
+  - `nginx` — установка и настройка обратного прокси.
+  - `app` — скачивание образа и запуск контейнера.
+- **Адрес образа GHCR:** `ghcr.io/sofiia-cloud/devops-ci-app`
+- **Полный SHA:** `latest` (временно, из-за ограничений GHCR).
+- **Порт контейнера:** `127.0.0.1:5000` (внутренний).
+- **Health endpoint:** `http://192.168.56.101/health`
+- **Команды запуска:**
+  - Первичный (bootstrap): `ansible-playbook -i inventory/bootstrap.ini site.yml --ask-pass --ask-become-pass`
+  - Повторный (prod): `ansible-playbook site.yml`
+- **Read-only аудит:** `ansible-playbook verify.yml`
